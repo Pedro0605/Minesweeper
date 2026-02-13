@@ -28,17 +28,26 @@ screen = g.display.set_mode((1200, 720))
 clock = g.time.Clock()
 running = True
 
-CELL_SIZE = 80
+SCREEN_WIDTH = 1200
+SCREEN_HEIGHT = 720
+PADDING = 40
 GAP = 4
+
+max_cell_width = (SCREEN_WIDTH - 2 * PADDING) // board_shape[1]
+max_cell_height = (SCREEN_HEIGHT - 2 * PADDING) // board_shape[0]
+CELL_SIZE = min(max_cell_width, max_cell_height)
+BORDER_RADIUS = max(3, min(10, int(CELL_SIZE * 0.12)))
+
 GRID_WIDTH = board_shape[1] * CELL_SIZE
 GRID_HEIGHT = board_shape[0] * CELL_SIZE
-OFFSET_X = (1200 - GRID_WIDTH) // 2
-OFFSET_Y = (720 - GRID_HEIGHT) // 2
+OFFSET_X = (SCREEN_WIDTH - GRID_WIDTH) // 2
+OFFSET_Y = (SCREEN_HEIGHT - GRID_HEIGHT) // 2
 
 BACKGROUND_COLOR = (100, 100, 100)
 CELL_COLOR = (200, 200, 200)
-EMPTY_CELL_COLOR = (170, 190, 170)
+EMPTY_CELL_COLOR = (78, 91, 94)
 SHADOW_COLOR = (60, 60, 60)
+MINE_COLOR = (220, 80, 80)
 
 NUMBER_COLORS = {
     1: (100, 180, 120),
@@ -56,7 +65,8 @@ font = None
 def draw_grid():
     global font
     if font is None:
-        font = g.font.Font(None, 48)
+        font_size = max(24, int(CELL_SIZE * 0.6))
+        font = g.font.Font(None, font_size)
     
     for row in range(board_shape[0]):
         for col in range(board_shape[1]):
@@ -68,10 +78,15 @@ def draw_grid():
             cell_value = board[row, col]
             cell_color = EMPTY_CELL_COLOR if cell_value == 0 else CELL_COLOR
             
-            g.draw.rect(screen, SHADOW_COLOR, (x + 2, y + 2, cell_width, cell_height), border_radius=10)
-            g.draw.rect(screen, cell_color, (x, y, cell_width, cell_height), border_radius=10)
+            g.draw.rect(screen, SHADOW_COLOR, (x + 2, y + 2, cell_width, cell_height), border_radius=BORDER_RADIUS)
+            g.draw.rect(screen, cell_color, (x, y, cell_width, cell_height), border_radius=BORDER_RADIUS)
             
-            if cell_value > 0:
+            if cell_value == -1:
+                mine_radius = max(3, int(cell_width * 0.25))
+                center_x = x + cell_width // 2
+                center_y = y + cell_height // 2
+                g.draw.circle(screen, MINE_COLOR, (center_x, center_y), mine_radius)
+            elif cell_value > 0:
                 color = NUMBER_COLORS.get(int(cell_value), (0, 0, 0))
                 text = font.render(str(int(cell_value)), True, color)
                 text_rect = text.get_rect(center=(x + cell_width // 2, y + cell_height // 2))
