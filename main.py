@@ -21,6 +21,7 @@ neighbour_count -= mines_only
 
 board = np.where(mine_board == -1, -1, neighbour_count)
 user_board = np.full(board_shape, -2, dtype=int)
+flag_board = np.zeros(board_shape, dtype=bool)
 
 print(board)
 
@@ -50,6 +51,7 @@ EMPTY_CELL_COLOR = (78, 91, 94)
 UNREVEALED_CELL_COLOR = (180, 180, 180)
 SHADOW_COLOR = (60, 60, 60)
 MINE_COLOR = (220, 80, 80)
+FLAG_COLOR = (255, 220, 80)
 
 NUMBER_COLORS = {
     1: (100, 180, 120),
@@ -98,14 +100,28 @@ def draw_grid():
                 text = font.render(str(int(user_value)), True, color)
                 text_rect = text.get_rect(center=(x + cell_width // 2, y + cell_height // 2))
                 screen.blit(text, text_rect)
+            
+            if flag_board[row, col]:
+                flag_radius = max(3, int(cell_width * 0.2))
+                center_x = x + cell_width // 2
+                center_y = y + cell_height // 2
+                g.draw.circle(screen, FLAG_COLOR, (center_x, center_y), flag_radius)
 
 def handle_click(mouse_x, mouse_y):
     col = (mouse_x - OFFSET_X) // CELL_SIZE
     row = (mouse_y - OFFSET_Y) // CELL_SIZE
     
     if 0 <= row < board_shape[0] and 0 <= col < board_shape[1]:
-        if user_board[row, col] == -2:
+        if user_board[row, col] == -2 and not flag_board[row, col]:
             user_board[row, col] = board[row, col]
+
+def handle_right_click(mouse_x, mouse_y):
+    col = (mouse_x - OFFSET_X) // CELL_SIZE
+    row = (mouse_y - OFFSET_Y) // CELL_SIZE
+    
+    if 0 <= row < board_shape[0] and 0 <= col < board_shape[1]:
+        if user_board[row, col] == -2:
+            flag_board[row, col] = not flag_board[row, col]
 
 while running:
     for event in g.event.get():
@@ -115,6 +131,9 @@ while running:
             if event.button == 1:
                 mouse_x, mouse_y = event.pos
                 handle_click(mouse_x, mouse_y)
+            elif event.button == 3:
+                mouse_x, mouse_y = event.pos
+                handle_right_click(mouse_x, mouse_y)
 
     screen.fill(BACKGROUND_COLOR)
     draw_grid()
