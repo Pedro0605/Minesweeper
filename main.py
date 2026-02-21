@@ -4,6 +4,7 @@ from view import GameView
 from controller import GameController
 
 def main():
+    """Initialize and run the Minesweeper game."""
     g.init()
     
     model = GameModel(board_shape=(8, 8), num_mines=10)
@@ -19,7 +20,7 @@ def main():
     
     while controller.running:
         controller.process_events()
-        view.render()
+        view.render(controller)
         g.display.flip()
         clock.tick(60)
     

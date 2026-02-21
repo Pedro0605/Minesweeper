@@ -15,6 +15,7 @@ SHADOW_COLOR = (60, 60, 60)
 MINE_COLOR = (220, 80, 80)
 FLAG_COLOR = (255, 220, 80)
 INCORRECT_FLAG_COLOR = (255, 100, 100)
+PEEK_HIGHLIGHT_COLOR = (255, 255, 150)
 BUTTON_COLOR = (150, 150, 150)
 BUTTON_HOVER_COLOR = (170, 170, 170)
 BUTTON_TEXT_COLOR = (255, 255, 255)
@@ -32,6 +33,7 @@ NUMBER_COLORS = {
 
 class GameView:
     def __init__(self, screen, model):
+        """Initialize the game view with screen and model references."""
         self.screen = screen
         self.model = model
         
@@ -46,8 +48,10 @@ class GameView:
         
         self.font = None
         self.button_font = None
+        self.peek_neighbors = None
     
     def draw_grid(self):
+        """Draw the game grid with cells, numbers, and flags."""
         if self.font is None:
             font_size = max(24, int(CELL_SIZE * 0.6))
             self.font = g.font.Font(None, font_size)
@@ -60,6 +64,8 @@ class GameView:
                 cell_height = CELL_SIZE - GAP * 2
                 user_value = self.model.user_board[row, col]
                 
+                is_highlighted = self.peek_neighbors and (row, col) in self.peek_neighbors
+                
                 if user_value == -2:
                     cell_color = UNREVEALED_CELL_COLOR
                 elif user_value == 0:
@@ -69,6 +75,13 @@ class GameView:
                 
                 g.draw.rect(self.screen, SHADOW_COLOR, (x + 2, y + 2, cell_width, cell_height), border_radius=BORDER_RADIUS)
                 g.draw.rect(self.screen, cell_color, (x, y, cell_width, cell_height), border_radius=BORDER_RADIUS)
+                
+                if is_highlighted:
+                    overlay = g.Surface((cell_width, cell_height))
+                    overlay.set_alpha(100)
+                    overlay.fill(PEEK_HIGHLIGHT_COLOR)
+                    self.screen.blit(overlay, (x, y))
+                    g.draw.rect(self.screen, PEEK_HIGHLIGHT_COLOR, (x, y, cell_width, cell_height), width=3, border_radius=BORDER_RADIUS)
                 
                 if user_value == -1:
                     mine_radius = max(3, int(cell_width * 0.25))
@@ -88,6 +101,7 @@ class GameView:
                     g.draw.circle(self.screen, FLAG_COLOR, (center_x, center_y), flag_radius)
     
     def draw_game_over_grid(self):
+        """Draw the game grid when game is over, revealing all cells."""
         if self.font is None:
             font_size = max(24, int(CELL_SIZE * 0.6))
             self.font = g.font.Font(None, font_size)
@@ -127,6 +141,7 @@ class GameView:
                     g.draw.circle(self.screen, flag_color, (center_x, center_y), flag_radius)
     
     def draw_game_over_ui(self):
+        """Draw the game over UI with buttons and messages."""
         if self.button_font is None:
             self.button_font = g.font.Font(None, 36)
         
@@ -168,8 +183,16 @@ class GameView:
         
         return (button_x, restart_button_y, button_width, button_height), (button_x, exit_button_y, button_width, button_height)
     
-    def render(self):
+    def render(self, controller=None):
+        """Render the game view, including grid and UI elements."""
         self.screen.fill(BACKGROUND_COLOR)
+        
+        if controller and controller.is_peek_active() and controller.peek_cell:
+            row, col = controller.peek_cell
+            self.peek_neighbors = self.model.get_neighbors(row, col)
+        else:
+            self.peek_neighbors = None
+        
         if self.model.game_over:
             self.draw_game_over_grid()
             self.draw_game_over_ui()
