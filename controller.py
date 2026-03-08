@@ -1,5 +1,5 @@
 import pygame as g
-from view import CELL_SIZE, SIDEBAR_WIDTH, PADDING
+from view import PADDING, SIDEBAR_WIDTH
 
 PEEK_THRESHOLD_MS = 200
 
@@ -22,8 +22,9 @@ class GameController:
     
     def handle_cell_click(self, mouse_x, mouse_y):
         """Handle left click on a cell to reveal it or chord."""
-        col = (mouse_x - self.view.offset_x) // CELL_SIZE
-        row = (mouse_y - self.view.offset_y) // CELL_SIZE
+        cs = self.view.cell_size
+        col = (mouse_x - self.view.offset_x) // cs
+        row = (mouse_y - self.view.offset_y) // cs
         
         if 0 <= row < self.model.board_shape[0] and 0 <= col < self.model.board_shape[1]:
             if self.model.user_board[row, col] > 0:
@@ -33,8 +34,9 @@ class GameController:
     
     def handle_cell_right_click(self, mouse_x, mouse_y):
         """Handle right click on a cell to toggle flag."""
-        col = (mouse_x - self.view.offset_x) // CELL_SIZE
-        row = (mouse_y - self.view.offset_y) // CELL_SIZE
+        cs = self.view.cell_size
+        col = (mouse_x - self.view.offset_x) // cs
+        row = (mouse_y - self.view.offset_y) // cs
         self.model.toggle_flag(row, col)
     
     def handle_button_click(self, mouse_x, mouse_y, restart_rect, exit_rect):
@@ -49,24 +51,24 @@ class GameController:
         for event in g.event.get():
             if event.type == g.QUIT:
                 self.running = False
+            elif event.type == g.VIDEORESIZE:
+                # pygame 1 fallback: only needed if not on SDL2
+                w, h = event.w, event.h
+                self.view.update_dimensions(w, h)
+            elif event.type == g.WINDOWRESIZED:
+                # pygame 2 / SDL2: surface already resized, just update layout
+                w, h = self.view.screen.get_size()
+                self.view.update_dimensions(w, h)
             elif event.type == g.MOUSEBUTTONDOWN:
                 if self.model.game_over:
-                    if event.button == 1:
+                    if event.button == 1 and self.view.restart_rect and self.view.exit_rect:
                         mouse_x, mouse_y = event.pos
-                        sidebar_x = self.view.offset_x + self.view.grid_width + 30
-                        button_width = 180
-                        button_height = 50
-                        button_x = sidebar_x + (SIDEBAR_WIDTH - 30 - button_width) // 2
-                        restart_button_y = self.view.screen_height - 150
-                        exit_button_y = self.view.screen_height - 80
-                        restart_rect = (button_x, restart_button_y, button_width, button_height)
-                        exit_rect = (button_x, exit_button_y, button_width, button_height)
-                        self.handle_button_click(mouse_x, mouse_y, restart_rect, exit_rect)
+                        self.handle_button_click(mouse_x, mouse_y, self.view.restart_rect, self.view.exit_rect)
                 else:
                     if event.button == 1:
                         mouse_x, mouse_y = event.pos
-                        col = (mouse_x - self.view.offset_x) // CELL_SIZE
-                        row = (mouse_y - self.view.offset_y) // CELL_SIZE
+                        col = (mouse_x - self.view.offset_x) // self.view.cell_size
+                        row = (mouse_y - self.view.offset_y) // self.view.cell_size
                         if 0 <= row < self.model.board_shape[0] and 0 <= col < self.model.board_shape[1]:
                             self.peeking = True
                             self.peek_cell = (row, col)
